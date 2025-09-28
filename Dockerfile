@@ -13,7 +13,8 @@ RUN apk add --no-cache git
 
 
 # Install TypeScript globally
-RUN npm install -g typescript
+RUN npm install -g typescript @types/node @types/minimist
+
 
 # Install dependencies
 RUN npm install
