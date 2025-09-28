@@ -16,7 +16,14 @@ RUN apk add --no-cache git
 RUN npm install -g typescript @types/node @types/minimist
 
 
-# Install dependencies
+
+# Clone and build MCP server
+RUN git clone https://github.com/resendlabs/mcp-server.git /mcp-server \
+	&& cd /mcp-server \
+	&& npm install \
+	&& npm run build
+
+# Install dependencies for main app
 RUN npm install
 
 # Copy the rest of the application code
