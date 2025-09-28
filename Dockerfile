@@ -1,9 +1,6 @@
 # Use Node.js 20 Alpine for smaller image size
 FROM node:20-alpine
 
-# Install curl for health checks and other utilities
-RUN apk add --no-cache curl
-
 # Install Bun
 RUN npm install -g bun
 
@@ -35,7 +32,6 @@ USER nodejs
 
 # Expose the port (adjust if your app uses a different port)
 EXPOSE 3000
-
 
 # Start the HTTP server
 CMD ["node", "dist/http.js"]
