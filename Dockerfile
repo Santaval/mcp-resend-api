@@ -18,10 +18,10 @@ RUN npm install -g typescript @types/node @types/minimist
 
 
 # Clone and build MCP server
-RUN git clone https://github.com/resendlabs/mcp-server.git /mcp-server \
-	&& cd /mcp-server \
-	&& npm install \
-	&& npm run build
+RUN git clone https://github.com/resendlabs/mcp-server.git /mcp-server && \
+    cd /mcp-server && \
+    npm install && \
+    npm run build
 
 # Install dependencies for main app
 RUN npm install
