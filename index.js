@@ -188,6 +188,82 @@ app.get('/list-audiences', async (req, res) => {
     }
 });
 
+// Generic MCP endpoint for n8n compatibility
+app.post('/mcp', async (req, res) => {
+    let mcpClient;
+    
+    try {
+        if (!req.body.jsonrpc || req.body.jsonrpc !== '2.0') {
+            return res.status(400).json({
+                error: 'Invalid JSON-RPC request'
+            });
+        }
+
+        mcpClient = getMCPProcess(req);
+        
+        // Forward the JSON-RPC request directly
+        const mcpRequest = req.body;
+        
+        console.log('Forwarding MCP request:', JSON.stringify(mcpRequest, null, 2));
+
+        // Set up SSE for streaming responses
+        if (req.headers.accept === 'text/event-stream') {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+
+            // Handle stream data
+            const streamHandler = (data) => {
+                try {
+                    const response = JSON.parse(data.toString());
+                    res.write(`data: ${JSON.stringify(response)}\n\n`);
+                } catch (err) {
+                    // Continue listening for valid JSON
+                }
+            };
+
+            mcpClient.process.stdout.on('data', streamHandler);
+
+            // Handle client disconnect
+            req.on('close', () => {
+                mcpClient.process.stdout.off('data', streamHandler);
+                mcpClient.process.kill();
+                mcpProcesses.delete(mcpClient.id);
+            });
+
+            // Send the request
+            mcpClient.process.stdin.write(JSON.stringify(mcpRequest) + '\n');
+        } else {
+            // Regular JSON-RPC request/response
+            const response = await mcpClient.send(mcpRequest);
+            
+            // Clean up process
+            mcpClient.process.kill();
+            mcpProcesses.delete(mcpClient.id);
+
+            res.json(response);
+        }
+    } catch (error) {
+        console.error('Error in MCP endpoint:', error);
+        
+        // Clean up process if it exists
+        if (mcpClient) {
+            mcpClient.process.kill();
+            mcpProcesses.delete(mcpClient.id);
+        }
+
+        res.status(500).json({
+            jsonrpc: '2.0',
+            error: {
+                code: -32000,
+                message: 'Internal server error',
+                data: error.message
+            },
+            id: req.body.id
+        });
+    }
+});
+
 // Error handling
 app.use((error, req, res, next) => {
     console.error('Unhandled error:', error);
