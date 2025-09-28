@@ -11,6 +11,10 @@ COPY package*.json ./
 # Install git
 RUN apk add --no-cache git
 
+
+# Install TypeScript globally
+RUN npm install -g typescript
+
 # Install dependencies
 RUN npm install
 
