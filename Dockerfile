@@ -36,9 +36,6 @@ USER nodejs
 # Expose the port (adjust if your app uses a different port)
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the HTTP server
 CMD ["node", "dist/http.js"]
