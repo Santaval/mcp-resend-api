@@ -1,34 +1,44 @@
-# Use Node.js 20 LTS as base image
+# Use Node.js 20 Alpine for smaller image size
 FROM node:20-alpine
+
+# Install curl for health checks and other utilities
+RUN apk add --no-cache curl
+
+# Install Bun
+RUN npm install -g bun
 
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+# Copy package files
+COPY package.json bun.lock* ./
 
+# Install dependencies using Bun
+RUN bun install --frozen-lockfile
 
-# Install git
-RUN apk add --no-cache git
+# Copy source code and configuration files
+COPY tsconfig.json ./
+COPY xmcp.config.ts ./
+COPY xmcp-env.d.ts ./
+COPY src/ ./src/
 
+# Build the application
+RUN bun run build
 
-# Install TypeScript globally
-RUN npm install -g typescript @types/node @types/minimist
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
 
+# Change ownership of the app directory
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
+# Expose the port (adjust if your app uses a different port)
+EXPOSE 3000
 
-# Install dependencies for main app
-RUN npm install
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
 
-# Copy the rest of the application code
-COPY . .
-
-# Expose the default port
-EXPOSE 7505
-
-# Set default environment variables
-ENV PORT=7505
-ENV NODE_ENV=production
-
-# Start the application
-CMD ["node", "index.js"]
+# Start the HTTP server
+CMD ["node", "dist/http.js"]
